@@ -7,8 +7,26 @@ SCAR_CC_DIR="${SCAR_CC_DIR:-$(cd "$(dirname "${(%):-%x}")" && pwd)}"
 # 바닐라
 alias cc='claude'
 
-# oh-my-claudecode (OMC 오케스트레이션 프롬프트 세션 주입, 글로벌 CLAUDE.md 안 건드림)
+# oh-my-claudecode (OMC 플러그인 자동 활성화 + 시스템 프롬프트 주입)
 cc-omc() {
+  # 프로젝트 로컬 .claude/settings.json에 OMC 플러그인 자동 활성화
+  local _settings=".claude/settings.json"
+  if [[ ! -f "$_settings" ]] || ! grep -q '"oh-my-claudecode@omc"' "$_settings" 2>/dev/null; then
+    mkdir -p .claude
+    if [[ -f "$_settings" ]]; then
+      # 기존 settings.json에 enabledPlugins 병합
+      local _tmp=$(mktemp)
+      node -e "
+        const fs = require('fs');
+        const s = JSON.parse(fs.readFileSync('$_settings','utf8'));
+        s.enabledPlugins = s.enabledPlugins || {};
+        s.enabledPlugins['oh-my-claudecode@omc'] = true;
+        fs.writeFileSync('$_tmp', JSON.stringify(s, null, 2) + '\n');
+      " && mv "$_tmp" "$_settings"
+    else
+      printf '{\n  "enabledPlugins": {\n    "oh-my-claudecode@omc": true\n  }\n}\n' > "$_settings"
+    fi
+  fi
   command claude \
     --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/omc/system-prompt.md")" \
     "$@"
