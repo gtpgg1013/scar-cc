@@ -10,8 +10,10 @@ Claude Code 멀티 프로필 매니저. 하나의 `source`로 다양한 Claude C
 | `cc-omc` | [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode) 멀티에이전트 오케스트레이션 |
 | `cc-moai` | [moai-adk](https://github.com/moai-adk) 프로젝트 로컬 |
 | `cc-spec` | [spec-kit](https://github.com/hreid3/spec-kit) 스펙 기반 개발 |
+| `cc-forge` | [claude-forge](https://github.com/sangrokjung/claude-forge) 프로젝트 로컬 |
 | `cc-omc-spec` | OMC + spec-kit 조합 |
 | `cc-moai-spec` | moai + spec-kit 조합 |
+| `cc-omc-forge` | OMC + forge 조합 |
 
 ### 변형 접두사
 
@@ -19,11 +21,11 @@ Claude Code 멀티 프로필 매니저. 하나의 `source`로 다양한 Claude C
 
 | 접두사 | 플래그 | 예시 |
 |---|---|---|
-| `ccy-` | `--dangerously-skip-permissions` | `ccy-omc`, `ccy-spec` |
-| `ccc-` | `--chrome` | `ccc-omc`, `ccc-spec` |
-| `ccyc-` | 둘 다 | `ccyc-omc-spec` |
+| `ccy-` | `--dangerously-skip-permissions` | `ccy-omc`, `ccy-forge` |
+| `ccc-` | `--chrome` | `ccc-omc`, `ccc-forge` |
+| `ccyc-` | 둘 다 | `ccyc-omc-spec`, `ccyc-forge` |
 
-총 **24개** 조합이 자동 생성된다.
+총 **32개** 조합이 자동 생성된다.
 
 ## 설치
 
@@ -42,6 +44,7 @@ source "$HOME/.scar-cc/scar-cc.zsh"
 - [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode) — `cc-omc` 프로필용
 - [spec-kit](https://github.com/hreid3/spec-kit) (`pip install specify-cli`) — `cc-spec` 프로필용
 - [moai-adk](https://github.com/moai-adk) — `cc-moai` 프로필용
+- [claude-forge](https://github.com/sangrokjung/claude-forge) — `cc-forge` 프로필용 (자동 다운로드)
 
 ## 사용법
 
@@ -51,7 +54,8 @@ source "$HOME/.scar-cc/scar-cc.zsh"
 cc                # 바닐라 Claude Code
 cc-omc            # OMC 에이전트 오케스트레이션
 cc-spec           # spec-kit 워크플로우 (자동 안내 시작)
-cc-omc-spec       # OMC + spec-kit
+cc-forge          # claude-forge (plan, tdd, auto 등)
+cc-omc-forge      # OMC + forge
 ccyc-omc-spec     # OMC + spec-kit + dsp + chrome
 ```
 
@@ -83,13 +87,38 @@ cc-spec "실시간 채팅 앱 만들어줘"
 /speckit.implement     → 작업 실행
 ```
 
+### claude-forge 워크플로우
+
+프로젝트에 forge 기능을 추가하려면:
+
+```bash
+# 1. 프로젝트 초기화 (최초 1회, 자동 다운로드)
+cc-init-forge
+
+# 2. 세션 시작
+cc-forge
+```
+
+세션 안에서 사용 가능한 주요 커맨드:
+
+```
+/plan              → AI 구현 계획 수립
+/tdd               → 테스트 주도 개발 (RED→GREEN→IMPROVE)
+/code-review       → 코드 리뷰 (보안 + 품질)
+/auto              → 원버튼 자동화 (plan→tdd→review→verify→commit)
+/handoff-verify    → 빌드/린트/테스트 자동 검증
+/guide             → 3분 온보딩 투어
+```
+
 ### 유틸리티
 
 ```bash
 cc-profile        # 사용 가능한 프로필 목록 출력
 cc-update         # moai + spec-kit + OMC 프롬프트 업데이트
+cc-update-forge   # claude-forge 캐시 업데이트
 cc-init-moai      # 현재 프로젝트에 moai-adk 초기화
 cc-init-spec      # 현재 프로젝트에 spec-kit 초기화
+cc-init-forge     # 현재 프로젝트에 claude-forge 초기화
 ```
 
 ## 구조
@@ -105,9 +134,11 @@ scar-cc/
 └── README.md
 ```
 
+forge는 프로젝트 로컬로 설치된다 (`.claude/commands/`, `.claude/agents/`, `.claude/rules/`).
+
 ## 동작 원리
 
-`--append-system-prompt`로 프로필별 시스템 프롬프트를 세션에 주입한다.
+**시스템 프롬프트 주입** — `--append-system-prompt`로 프로필별 시스템 프롬프트를 세션에 주입한다.
 글로벌 `CLAUDE.md`는 건드리지 않으며, 프로필 조합은 zsh 함수 래핑으로 구현된다.
 
 ```
@@ -115,6 +146,9 @@ cc-omc-spec "작업"
   → cc-omc --append-system-prompt <spec프롬프트> "작업"
     → claude --append-system-prompt <omc프롬프트> --append-system-prompt <spec프롬프트> "작업"
 ```
+
+**프로젝트 로컬 설치** — forge, spec-kit, moai는 프로젝트의 `.claude/` 또는 전용 디렉토리에 설치된다.
+프로젝트별로 다른 도구 조합을 사용할 수 있고, 글로벌 설정과 충돌하지 않는다.
 
 ## License
 
