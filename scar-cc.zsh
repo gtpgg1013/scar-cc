@@ -185,6 +185,11 @@ cc-init-spec() {
 
 # 업데이트
 cc-update() {
+  echo "Updating scar-cc..."
+  git -C "$SCAR_CC_DIR" pull --ff-only \
+    && echo "scar-cc updated. 새 터미널에서 반영됩니다." \
+    || echo "scar-cc update failed."
+  echo ""
   echo "Updating moai-adk..."
   uv tool upgrade moai-adk
   echo ""
