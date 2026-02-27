@@ -202,6 +202,16 @@ cc-update() {
     && echo "OMC system prompt updated." \
     || echo "Failed to update OMC system prompt."
   echo ""
+  echo "Syncing custom skills..."
+  if [[ -d "$SCAR_CC_DIR/skills" ]]; then
+    for _skill_dir in "$SCAR_CC_DIR"/skills/*/; do
+      local _skill_name="$(basename "$_skill_dir")"
+      mkdir -p "$HOME/.claude/skills/$_skill_name"
+      cp "$_skill_dir"* "$HOME/.claude/skills/$_skill_name/" 2>/dev/null
+    done
+    echo "Skills synced to ~/.claude/skills/"
+  fi
+  echo ""
   echo "Done. OMC 플러그인은 Claude Code 내에서 /plugin update oh-my-claudecode 으로 업데이트하세요."
 }
 
