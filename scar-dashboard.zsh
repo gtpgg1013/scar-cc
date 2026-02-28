@@ -21,10 +21,10 @@ cc-dash() {
   echo ""
 
   # 컬럼 헤더
-  printf "  \033[1m%-26s %-16s %-18s %s\033[0m\n" \
+  printf "  \033[1m%-26s %-24s %-18s %s\033[0m\n" \
     "PROJECT" "TOOLS" "PORTS" "GIT"
-  printf "  %-26s %-16s %-18s %s\n" \
-    "──────────────────────────" "────────────────" "──────────────────" "──────────────"
+  printf "  %-26s %-24s %-18s %s\n" \
+    "──────────────────────────" "────────────────────────" "──────────────────" "──────────────"
 
   for dir in "$SCAR_DEV_DIR"/*/; do
     [[ -d "$dir" ]] || continue
@@ -33,7 +33,11 @@ cc-dash() {
     # ── Tools 감지 ──
     local tools=""
     if [[ -f "$dir/.claude/settings.json" ]]; then
-      command grep -qF "oh-my-claudecode" "$dir/.claude/settings.json" 2>/dev/null && tools+="omc "
+      local _settings="$dir/.claude/settings.json"
+      command grep -qF "oh-my-claudecode" "$_settings" 2>/dev/null && tools+="omc "
+      command grep -qF "show-me-the-prd" "$_settings" 2>/dev/null && tools+="prd "
+      command grep -qF "docs-guide" "$_settings" 2>/dev/null && tools+="docs "
+      command grep -qF "deep-research" "$_settings" 2>/dev/null && tools+="research "
     fi
     [[ -d "$dir/.specify" ]] && tools+="spec "
     [[ -f "$dir/.claude/.forge" ]] && tools+="forge "
@@ -70,10 +74,10 @@ cc-dash() {
 
     # ── 출력 ──
     if [[ "$name" == "$current" ]]; then
-      printf "  \033[36m▸ %-24s\033[0m %-16s %-18s %b\n" \
+      printf "  \033[36m▸ %-24s\033[0m %-24s %-18s %b\n" \
         "$name" "$tools" "$port_str" "$git_info"
     else
-      printf "    %-24s %-16s %-18s %b\n" \
+      printf "    %-24s %-24s %-18s %b\n" \
         "$name" "$tools" "$port_str" "$git_info"
     fi
   done
