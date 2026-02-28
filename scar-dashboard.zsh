@@ -36,8 +36,6 @@ cc-dash() {
       local _settings="$dir/.claude/settings.json"
       command grep -qF "oh-my-claudecode" "$_settings" 2>/dev/null && tools+="omc "
       command grep -qF "show-me-the-prd" "$_settings" 2>/dev/null && tools+="prd "
-      command grep -qF "docs-guide" "$_settings" 2>/dev/null && tools+="docs "
-      command grep -qF "deep-research" "$_settings" 2>/dev/null && tools+="research "
     fi
     [[ -d "$dir/.specify" ]] && tools+="spec "
     [[ -f "$dir/.claude/.forge" ]] && tools+="forge "
