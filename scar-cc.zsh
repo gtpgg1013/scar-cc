@@ -342,12 +342,13 @@ cc-profile() {
   echo "    cc-profile       → 이 목록 출력"
   echo ""
   echo "  Dashboard & Ports:"
-  echo "    dashboard        → 전체 프로젝트 현황 (도구, 포트, git)"
-  echo "    devports         → 현재 프로젝트 포트 확인 & export"
-  echo "    devports-set N   → offset 수동 지정"
-  echo "    devports-env     → .env.ports 파일 생성"
-  echo "    ports            → 전체 포트 맵 + 실시간 상태"
-  echo "    ports-active     → 현재 리스닝 포트 목록"
+  echo "    cc-dash          → 전체 프로젝트 현황 (도구, 포트, git)"
+  echo "    cc-ports         → 전체 포트 맵 + 실시간 상태"
+  echo "    cc-ports show    → 현재 프로젝트 포트 확인 & export"
+  echo "    cc-ports set N   → offset 수동 지정"
+  echo "    cc-ports env     → .env.ports 파일 생성"
+  echo "    cc-ports active  → 현재 리스닝 포트 목록"
+  echo "    cc-ports rm      → 레지스트리에서 제거"
 }
 
 # === Port Management ===

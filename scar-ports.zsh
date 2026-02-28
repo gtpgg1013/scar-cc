@@ -4,12 +4,12 @@
 # cd 할 때 자동 등록 + env var export
 #
 # 사용법:
-#   devports             현재 프로젝트 포트 확인 & export
-#   devports my-app      특정 프로젝트 포트 확인
-#   devports-env         .env.ports 파일 생성
-#   devports-set N       현재 프로젝트 offset 수동 지정
-#   ports                전체 포트 맵 + 실시간 상태
-#   ports-active         현재 리스닝 중인 포트
+#   cc-ports             전체 포트 맵 + 실시간 상태
+#   cc-ports show        현재 프로젝트 포트 확인
+#   cc-ports set N       offset 수동 지정 (1-999)
+#   cc-ports env         .env.ports 파일 생성
+#   cc-ports active      현재 리스닝 중인 포트
+#   cc-ports rm          레지스트리에서 제거
 #
 # 포트 규칙:
 #   FRONT (PORT) = 3000 + offset
@@ -55,7 +55,6 @@ _scar_registry_append() {
   local entry="$1"
   mkdir -p "$(dirname "$SCAR_PORTS_REGISTRY")"
   if [[ -f "$SCAR_PORTS_REGISTRY" && -s "$SCAR_PORTS_REGISTRY" ]]; then
-    # 마지막 문자가 개행이 아니면 개행 추가
     if [[ "$(tail -c 1 "$SCAR_PORTS_REGISTRY" | wc -l)" -eq 0 ]]; then
       echo "" >> "$SCAR_PORTS_REGISTRY"
     fi
@@ -85,29 +84,26 @@ _scar_registry_lookup() {
 _scar_port_offset() {
   local name="$1"
 
-  # 레지스트리에서 조회
   local offset=$(_scar_registry_lookup "$name")
   if [[ -n "$offset" ]]; then
     echo "$offset"
     return
   fi
 
-  # 미등록 → 자동 등록
   local new_offset=$(_scar_next_offset)
   _scar_registry_append "${name}=${new_offset}"
   echo "$new_offset"
 }
 
-# ── Commands ─────────────────────────────────────────────
+# ── Subcommands ──────────────────────────────────────────
 
-# 현재 프로젝트 포트 확인 & export
-devports() {
+_cc_ports_show() {
   local name
   if [[ -n "$1" ]]; then
     name="$1"
   else
     if [[ "$PWD" != "$SCAR_DEV_DIR/"* ]]; then
-      echo "Not inside $SCAR_DEV_DIR. Use: devports <project-name>"
+      echo "Not inside $SCAR_DEV_DIR. Use: cc-ports show <project-name>"
       return 1
     fi
     name=$(_scar_project_name)
@@ -125,12 +121,11 @@ devports() {
   printf "  DB           : \033[33m%s\033[0m\n" "$PORT_DB"
 }
 
-# offset 수동 지정 (1-999)
-devports-set() {
+_cc_ports_set() {
   local offset="$1"
   if [[ -z "$offset" || ! "$offset" =~ ^[0-9]+$ || "$offset" -eq 0 || "$offset" -gt 999 ]]; then
-    echo "Usage: devports-set <offset>  (1-999)"
-    echo "  예: devports-set 20  → FRONT=3020, BACK=4020, DB=5520"
+    echo "Usage: cc-ports set <offset>  (1-999)"
+    echo "  예: cc-ports set 20  → FRONT=3020, BACK=4020, DB=5520"
     return 1
   fi
 
@@ -142,7 +137,6 @@ devports-set() {
   local name=$(_scar_project_name)
   mkdir -p "$(dirname "$SCAR_PORTS_REGISTRY")"
 
-  # 충돌 체크
   if [[ -f "$SCAR_PORTS_REGISTRY" ]]; then
     local existing=$(command grep "=${offset}$" "$SCAR_PORTS_REGISTRY" 2>/dev/null | head -1 | cut -d= -f1)
     if [[ -n "$existing" && "$existing" != "$name" ]]; then
@@ -151,15 +145,13 @@ devports-set() {
     fi
   fi
 
-  # 기존 항목 제거 후 재등록
   _scar_registry_remove "$name"
   _scar_registry_append "${name}=${offset}"
 
-  devports "$name"
+  _cc_ports_show "$name"
 }
 
-# .env.ports 파일 생성
-devports-env() {
+_cc_ports_env() {
   if [[ "$PWD" != "$SCAR_DEV_DIR/"* ]]; then
     echo "Not inside $SCAR_DEV_DIR."
     return 1
@@ -179,15 +171,12 @@ EOF
   echo ".env.ports → front:$front back:$back db:$db"
 }
 
-# 전체 포트 맵 + 실시간 상태
-ports() {
-  # 리스닝 포트 한 번만 조회
+_cc_ports_map() {
   local listening=$(lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null | awk '{split($9,a,":"); print a[length(a)]}' | sort -u)
 
   printf "\033[1m%-28s  %-12s %-12s %-12s\033[0m\n" "PROJECT" "FRONT" "BACK" "DB"
   printf "%-28s  %-12s %-12s %-12s\n" "────────────────────────────" "──────────" "──────────" "──────────"
 
-  # 레지스트리에서 읽기 (등록 순서 유지)
   if [[ ! -f "$SCAR_PORTS_REGISTRY" ]]; then
     echo "(레지스트리 비어있음. cd ~/DEV/<project>하면 자동 등록)"
     return
@@ -200,12 +189,10 @@ ports() {
 
     local front=$((3000+offset)) back=$((4000+offset)) db=$((5500+offset))
 
-    # 실시간 상태 체크 (inline)
     local f_status=$(echo "$listening" | command grep -qx "$front" && printf "\033[32m●\033[0m" || printf "\033[90m·\033[0m")
     local b_status=$(echo "$listening" | command grep -qx "$back"  && printf "\033[32m●\033[0m" || printf "\033[90m·\033[0m")
     local d_status=$(echo "$listening" | command grep -qx "$db"    && printf "\033[32m●\033[0m" || printf "\033[90m·\033[0m")
 
-    # 현재 프로젝트 하이라이트
     if [[ "$name" == "$current_name" ]]; then
       printf "\033[36m▸ %-26s\033[0m  %s %-9s %s %-9s %s %-9s\n" \
         "$name" "$f_status" "$front" "$b_status" "$back" "$d_status" "$db"
@@ -216,8 +203,7 @@ ports() {
   done < "$SCAR_PORTS_REGISTRY"
 }
 
-# 현재 리스닝 포트
-ports-active() {
+_cc_ports_active() {
   printf "\033[1m%-7s %-15s %s\033[0m\n" "PORT" "PROCESS" "PID"
   printf "%-7s %-15s %s\n" "─────" "───────────────" "─────"
   lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null | \
@@ -225,11 +211,40 @@ ports-active() {
     sort -n -k1 | uniq
 }
 
-# 레지스트리에서 프로젝트 제거
-devports-rm() {
+_cc_ports_rm() {
   local name="${1:-$(_scar_project_name)}"
   _scar_registry_remove "$name"
   echo "Removed: $name"
+}
+
+# ── Main entry point ─────────────────────────────────────
+
+cc-ports() {
+  local subcmd="${1:-}"
+  shift 2>/dev/null
+
+  case "$subcmd" in
+    show)    _cc_ports_show "$@" ;;
+    set)     _cc_ports_set "$@" ;;
+    env)     _cc_ports_env "$@" ;;
+    active)  _cc_ports_active "$@" ;;
+    rm)      _cc_ports_rm "$@" ;;
+    help|-h|--help)
+      echo "Usage: cc-ports [subcommand]"
+      echo ""
+      echo "  (no args)    전체 포트 맵 + 실시간 상태"
+      echo "  show [name]  현재 프로젝트 포트 확인 & export"
+      echo "  set N        offset 수동 지정 (1-999)"
+      echo "  env          .env.ports 파일 생성"
+      echo "  active       현재 리스닝 중인 포트"
+      echo "  rm [name]    레지스트리에서 제거"
+      ;;
+    "")      _cc_ports_map ;;
+    *)
+      echo "Unknown: cc-ports $subcmd (cc-ports help 참고)"
+      return 1
+      ;;
+  esac
 }
 
 # ── Auto-set on cd ───────────────────────────────────────

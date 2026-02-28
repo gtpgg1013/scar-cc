@@ -3,13 +3,11 @@
 # ~/DEV/ 프로젝트 현황을 한눈에
 #
 # 사용법:
-#   dashboard          전체 프로젝트 대시보드
-#   dashboard -p       포트만 (ports 명령과 동일)
-#   dashboard -g       git 상태만
+#   cc-dash            전체 프로젝트 대시보드
 
 SCAR_DEV_DIR="${SCAR_DEV_DIR:-$HOME/DEV}"
 
-dashboard() {
+cc-dash() {
   local mode="${1:-all}"
 
   # 리스닝 포트 한 번만 조회
