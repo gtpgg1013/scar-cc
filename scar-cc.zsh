@@ -180,6 +180,52 @@ cc-omc-forge() {
   cc-omc "$@"
 }
 
+# PRD + spec-kit (기획 → 명세)
+cc-prd-spec() {
+  if [[ ! -d ".specify" ]]; then
+    echo "⚠ spec-kit 미초기화. 'cc-init-spec' 먼저 실행하세요."
+    return 1
+  fi
+  cc-prd \
+    --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/spec/system-prompt.md")" \
+    "$@"
+}
+
+# PRD + spec-kit + OMC (기획 → 명세 → 구현, 복잡한 프로젝트)
+cc-prd-spec-omc() {
+  if [[ ! -d ".specify" ]]; then
+    echo "⚠ spec-kit 미초기화. 'cc-init-spec' 먼저 실행하세요."
+    return 1
+  fi
+  cc-omc-prd \
+    --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/spec/system-prompt.md")" \
+    "$@"
+}
+
+# PRD + moai-adk (기획 → moai 자체 SPEC → 구현, spec-kit 생략)
+cc-prd-moai() {
+  if [[ ! -d ".moai" ]]; then
+    echo "⚠ moai-adk 미초기화. 'cc-init-moai' 먼저 실행하세요."
+    return 1
+  fi
+  cc-prd "$@"
+}
+
+# PRD + spec-kit + forge (기획 → 명세 → forge 구현)
+cc-prd-spec-forge() {
+  if [[ ! -d ".specify" ]]; then
+    echo "⚠ spec-kit 미초기화. 'cc-init-spec' 먼저 실행하세요."
+    return 1
+  fi
+  if [[ ! -f ".claude/.forge" ]]; then
+    echo "⚠ claude-forge 미초기화. 'cc-init-forge' 먼저 실행하세요."
+    return 1
+  fi
+  cc-prd \
+    --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/spec/system-prompt.md")" \
+    "$@"
+}
+
 # 프로젝트 초기화 헬퍼
 cc-init-moai() { moai init "${1:-.}"; }
 _SCAR_FORGE_REPO="https://github.com/sangrokjung/claude-forge.git"
@@ -283,7 +329,7 @@ cc-update() {
 
 # y/c/yc 변형 자동 생성 (y=dsp, c=chrome, yc=둘다)
 # 베이스 함수들을 감싸서 플래그만 추가
-_cc_bases=( "::command claude" "-omc::cc-omc" "-prd::cc-prd" "-moai::cc-moai" "-spec::cc-spec" "-forge::cc-forge" "-omc-prd::cc-omc-prd" "-omc-spec::cc-omc-spec" "-moai-spec::cc-moai-spec" "-omc-forge::cc-omc-forge" )
+_cc_bases=( "::command claude" "-omc::cc-omc" "-prd::cc-prd" "-moai::cc-moai" "-spec::cc-spec" "-forge::cc-forge" "-omc-prd::cc-omc-prd" "-prd-spec::cc-prd-spec" "-prd-spec-omc::cc-prd-spec-omc" "-prd-moai::cc-prd-moai" "-prd-spec-forge::cc-prd-spec-forge" "-omc-spec::cc-omc-spec" "-moai-spec::cc-moai-spec" "-omc-forge::cc-omc-forge" )
 for _entry in "${_cc_bases[@]}"; do
   _suffix="${_entry%%::*}"
   _base="${_entry##*::}"
@@ -304,7 +350,11 @@ cc-profile() {
   echo "    cc-moai        → moai-adk (프로젝트 로컬)"
   echo "    cc-spec        → spec-kit (프로젝트 로컬)"
   echo "    cc-forge       → claude-forge (프로젝트 로컬)"
-  echo "    cc-omc-prd     → OMC + gptaku (PRD → 구현 파이프라인)"
+  echo "    cc-omc-prd     → OMC + gptaku (PRD → 구현)"
+  echo "    cc-prd-spec    → gptaku + spec-kit (기획 → 명세)"
+  echo "    cc-prd-spec-omc → gptaku + spec-kit + OMC (기획 → 명세 → 구현)"
+  echo "    cc-prd-moai    → gptaku + moai (PRD → moai SPEC, spec-kit 생략)"
+  echo "    cc-prd-spec-forge → gptaku + spec-kit + forge (기획 → 명세 → forge)"
   echo "    cc-omc-spec    → OMC + spec-kit"
   echo "    cc-moai-spec   → moai + spec-kit"
   echo "    cc-omc-forge   → OMC + forge"
