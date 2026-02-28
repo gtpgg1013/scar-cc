@@ -64,8 +64,8 @@ cc-prd() {
   command claude "$@"
 }
 
-# OMC + gptaku (전체 파이프라인: PRD → 구현)
-cc-omc-prd() {
+# PRD + OMC (기획 → 구현 파이프라인)
+cc-prd-omc() {
   local _settings=".claude/settings.json"
   local _plugins=("oh-my-claudecode@omc" "show-me-the-prd@gptaku-plugins" "docs-guide@gptaku-plugins" "deep-research@gptaku-plugins")
   local _need_update=false
@@ -197,7 +197,7 @@ cc-prd-spec-omc() {
     echo "⚠ spec-kit 미초기화. 'cc-init-spec' 먼저 실행하세요."
     return 1
   fi
-  cc-omc-prd \
+  cc-prd-omc \
     --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/spec/system-prompt.md")" \
     "$@"
 }
@@ -329,7 +329,7 @@ cc-update() {
 
 # y/c/yc 변형 자동 생성 (y=dsp, c=chrome, yc=둘다)
 # 베이스 함수들을 감싸서 플래그만 추가
-_cc_bases=( "::command claude" "-omc::cc-omc" "-prd::cc-prd" "-moai::cc-moai" "-spec::cc-spec" "-forge::cc-forge" "-omc-prd::cc-omc-prd" "-prd-spec::cc-prd-spec" "-prd-spec-omc::cc-prd-spec-omc" "-prd-moai::cc-prd-moai" "-prd-spec-forge::cc-prd-spec-forge" "-omc-spec::cc-omc-spec" "-moai-spec::cc-moai-spec" "-omc-forge::cc-omc-forge" )
+_cc_bases=( "::command claude" "-omc::cc-omc" "-prd::cc-prd" "-moai::cc-moai" "-spec::cc-spec" "-forge::cc-forge" "-omc-prd::cc-prd-omc" "-prd-spec::cc-prd-spec" "-prd-spec-omc::cc-prd-spec-omc" "-prd-moai::cc-prd-moai" "-prd-spec-forge::cc-prd-spec-forge" "-omc-spec::cc-omc-spec" "-moai-spec::cc-moai-spec" "-omc-forge::cc-omc-forge" )
 for _entry in "${_cc_bases[@]}"; do
   _suffix="${_entry%%::*}"
   _base="${_entry##*::}"
@@ -350,7 +350,7 @@ cc-profile() {
   echo "    cc-moai        → moai-adk (프로젝트 로컬)"
   echo "    cc-spec        → spec-kit (프로젝트 로컬)"
   echo "    cc-forge       → claude-forge (프로젝트 로컬)"
-  echo "    cc-omc-prd     → OMC + gptaku (PRD → 구현)"
+  echo "    cc-prd-omc     → gptaku + OMC (PRD → 구현)"
   echo "    cc-prd-spec    → gptaku + spec-kit (기획 → 명세)"
   echo "    cc-prd-spec-omc → gptaku + spec-kit + OMC (기획 → 명세 → 구현)"
   echo "    cc-prd-moai    → gptaku + moai (PRD → moai SPEC, spec-kit 생략)"
