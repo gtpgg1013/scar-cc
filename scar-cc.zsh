@@ -32,6 +32,72 @@ cc-omc() {
     "$@"
 }
 
+# gptaku (show-me-the-prd + docs-guide + deep-research)
+cc-prd() {
+  local _settings=".claude/settings.json"
+  local _plugins=("show-me-the-prd@gptaku-plugins" "docs-guide@gptaku-plugins" "deep-research@gptaku-plugins")
+  local _need_update=false
+
+  for _p in "${_plugins[@]}"; do
+    if [[ ! -f "$_settings" ]] || ! grep -q "\"$_p\"" "$_settings" 2>/dev/null; then
+      _need_update=true
+      break
+    fi
+  done
+
+  if $_need_update; then
+    mkdir -p .claude
+    if [[ -f "$_settings" ]]; then
+      local _tmp=$(mktemp)
+      node -e "
+        const fs = require('fs');
+        const s = JSON.parse(fs.readFileSync('$_settings','utf8'));
+        s.enabledPlugins = s.enabledPlugins || {};
+        ['show-me-the-prd@gptaku-plugins','docs-guide@gptaku-plugins','deep-research@gptaku-plugins']
+          .forEach(p => s.enabledPlugins[p] = true);
+        fs.writeFileSync('$_tmp', JSON.stringify(s, null, 2) + '\n');
+      " && mv "$_tmp" "$_settings"
+    else
+      printf '{\n  "enabledPlugins": {\n    "show-me-the-prd@gptaku-plugins": true,\n    "docs-guide@gptaku-plugins": true,\n    "deep-research@gptaku-plugins": true\n  }\n}\n' > "$_settings"
+    fi
+  fi
+  command claude "$@"
+}
+
+# OMC + gptaku (전체 파이프라인: PRD → 구현)
+cc-omc-prd() {
+  local _settings=".claude/settings.json"
+  local _plugins=("oh-my-claudecode@omc" "show-me-the-prd@gptaku-plugins" "docs-guide@gptaku-plugins" "deep-research@gptaku-plugins")
+  local _need_update=false
+
+  for _p in "${_plugins[@]}"; do
+    if [[ ! -f "$_settings" ]] || ! grep -q "\"$_p\"" "$_settings" 2>/dev/null; then
+      _need_update=true
+      break
+    fi
+  done
+
+  if $_need_update; then
+    mkdir -p .claude
+    if [[ -f "$_settings" ]]; then
+      local _tmp=$(mktemp)
+      node -e "
+        const fs = require('fs');
+        const s = JSON.parse(fs.readFileSync('$_settings','utf8'));
+        s.enabledPlugins = s.enabledPlugins || {};
+        ['oh-my-claudecode@omc','show-me-the-prd@gptaku-plugins','docs-guide@gptaku-plugins','deep-research@gptaku-plugins']
+          .forEach(p => s.enabledPlugins[p] = true);
+        fs.writeFileSync('$_tmp', JSON.stringify(s, null, 2) + '\n');
+      " && mv "$_tmp" "$_settings"
+    else
+      printf '{\n  "enabledPlugins": {\n    "oh-my-claudecode@omc": true,\n    "show-me-the-prd@gptaku-plugins": true,\n    "docs-guide@gptaku-plugins": true,\n    "deep-research@gptaku-plugins": true\n  }\n}\n' > "$_settings"
+    fi
+  fi
+  command claude \
+    --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/omc/system-prompt.md")" \
+    "$@"
+}
+
 # moai-adk (프로젝트 로컬)
 cc-moai() {
   if [[ ! -d ".moai" ]]; then
@@ -217,7 +283,7 @@ cc-update() {
 
 # y/c/yc 변형 자동 생성 (y=dsp, c=chrome, yc=둘다)
 # 베이스 함수들을 감싸서 플래그만 추가
-_cc_bases=( "::command claude" "-omc::cc-omc" "-moai::cc-moai" "-spec::cc-spec" "-forge::cc-forge" "-omc-spec::cc-omc-spec" "-moai-spec::cc-moai-spec" "-omc-forge::cc-omc-forge" )
+_cc_bases=( "::command claude" "-omc::cc-omc" "-prd::cc-prd" "-moai::cc-moai" "-spec::cc-spec" "-forge::cc-forge" "-omc-prd::cc-omc-prd" "-omc-spec::cc-omc-spec" "-moai-spec::cc-moai-spec" "-omc-forge::cc-omc-forge" )
 for _entry in "${_cc_bases[@]}"; do
   _suffix="${_entry%%::*}"
   _base="${_entry##*::}"
@@ -234,9 +300,11 @@ cc-profile() {
   echo "  Base:"
   echo "    cc             → 바닐라 Claude Code"
   echo "    cc-omc         → oh-my-claudecode"
+  echo "    cc-prd         → show-me-the-prd + docs-guide + deep-research (기획)"
   echo "    cc-moai        → moai-adk (프로젝트 로컬)"
   echo "    cc-spec        → spec-kit (프로젝트 로컬)"
   echo "    cc-forge       → claude-forge (프로젝트 로컬)"
+  echo "    cc-omc-prd     → OMC + gptaku (PRD → 구현 파이프라인)"
   echo "    cc-omc-spec    → OMC + spec-kit"
   echo "    cc-moai-spec   → moai + spec-kit"
   echo "    cc-omc-forge   → OMC + forge"
