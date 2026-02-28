@@ -18,10 +18,10 @@ cc-dash() {
   echo ""
 
   # 컬럼 헤더
-  printf "  \033[1m%-30s %-14s %-16s %s\033[0m\n" \
+  printf "  \033[1m%-30s %-14s %-26s %s\033[0m\n" \
     "PROJECT" "TOOLS" "PORTS" "GIT"
-  printf "  %.30s %.14s %.16s %.14s\n" \
-    "------------------------------" "--------------" "----------------" "--------------"
+  printf "  %.30s %.14s %.26s %.14s\n" \
+    "------------------------------" "--------------" "--------------------------" "--------------"
 
   for dir in "$SCAR_DEV_DIR"/*/; do
     [[ -d "$dir" ]] || continue
@@ -45,11 +45,12 @@ cc-dash() {
     if [[ -f "$SCAR_PORTS_REGISTRY" ]]; then
       local offset=$(_scar_registry_lookup "$name")
       if [[ -n "$offset" ]]; then
-        local front=$((3000+offset)) back=$((4000+offset))
-        local f_up=" " b_up=" "
+        local front=$((3000+offset)) back=$((4000+offset)) db=$((5500+offset))
+        local f_up=" " b_up=" " d_up=" "
         echo "$listening" | command grep -qx "$front" && f_up="*"
         echo "$listening" | command grep -qx "$back"  && b_up="*"
-        port_str="${f_up}F:${front} ${b_up}B:${back}"
+        echo "$listening" | command grep -qx "$db"    && d_up="*"
+        port_str="${f_up}F:${front} ${b_up}B:${back} ${d_up}D:${db}"
       fi
     fi
 
@@ -68,10 +69,10 @@ cc-dash() {
 
     # ── 출력 ──
     if [[ "$name" == "$current" ]]; then
-      printf "  \033[36m> %-28s\033[0m %-14s %-16s %b\n" \
+      printf "  \033[36m> %-28s\033[0m %-14s %-26s %b\n" \
         "$name" "$tools" "$port_str" "$git_info"
     else
-      printf "    %-28s %-14s %-16s %b\n" \
+      printf "    %-28s %-14s %-26s %b\n" \
         "$name" "$tools" "$port_str" "$git_info"
     fi
   done
