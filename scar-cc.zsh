@@ -329,7 +329,7 @@ cc-update() {
 
 # y/c/yc 변형 자동 생성 (y=dsp, c=chrome, yc=둘다)
 # 베이스 함수들을 감싸서 플래그만 추가
-_cc_bases=( "::command claude" "-omc::cc-omc" "-prd::cc-prd" "-moai::cc-moai" "-spec::cc-spec" "-forge::cc-forge" "-omc-prd::cc-prd-omc" "-prd-spec::cc-prd-spec" "-prd-spec-omc::cc-prd-spec-omc" "-prd-moai::cc-prd-moai" "-prd-spec-forge::cc-prd-spec-forge" "-omc-spec::cc-omc-spec" "-moai-spec::cc-moai-spec" "-omc-forge::cc-omc-forge" )
+_cc_bases=( "::command claude" "-omc::cc-omc" "-prd::cc-prd" "-moai::cc-moai" "-spec::cc-spec" "-forge::cc-forge" "-prd-omc::cc-prd-omc" "-prd-spec::cc-prd-spec" "-prd-spec-omc::cc-prd-spec-omc" "-prd-moai::cc-prd-moai" "-prd-spec-forge::cc-prd-spec-forge" "-omc-spec::cc-omc-spec" "-moai-spec::cc-moai-spec" "-omc-forge::cc-omc-forge" )
 for _entry in "${_cc_bases[@]}"; do
   _suffix="${_entry%%::*}"
   _base="${_entry##*::}"
