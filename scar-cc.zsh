@@ -342,4 +342,7 @@ cc-profile() {
   echo "    cc-profile       → 이 목록 출력"
 }
 
+# === Port Management ===
+source "${SCAR_CC_DIR}/scar-ports.zsh"
+
 # === End scar-cc ===
