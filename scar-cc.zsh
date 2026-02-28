@@ -7,26 +7,40 @@ SCAR_CC_DIR="${SCAR_CC_DIR:-$(cd "$(dirname "${(%):-%x}")" && pwd)}"
 # 바닐라
 alias cc='claude'
 
-# oh-my-claudecode (OMC 플러그인 자동 활성화 + 시스템 프롬프트 주입)
-cc-omc() {
-  # 프로젝트 로컬 .claude/settings.json에 OMC 플러그인 자동 활성화
+# --- 플러그인 관리 헬퍼 ---
+# enabledPlugins를 프로파일에 맞게 덮어쓰기 (다른 설정은 보존)
+# 사용법: _scar_set_plugins '{"plugin@mp":true, ...}'
+_scar_set_plugins() {
   local _settings=".claude/settings.json"
-  if [[ ! -f "$_settings" ]] || ! grep -q '"oh-my-claudecode@omc"' "$_settings" 2>/dev/null; then
-    mkdir -p .claude
-    if [[ -f "$_settings" ]]; then
-      # 기존 settings.json에 enabledPlugins 병합
-      local _tmp=$(mktemp)
-      node -e "
-        const fs = require('fs');
-        const s = JSON.parse(fs.readFileSync('$_settings','utf8'));
-        s.enabledPlugins = s.enabledPlugins || {};
-        s.enabledPlugins['oh-my-claudecode@omc'] = true;
-        fs.writeFileSync('$_tmp', JSON.stringify(s, null, 2) + '\n');
-      " && mv "$_tmp" "$_settings"
-    else
-      printf '{\n  "enabledPlugins": {\n    "oh-my-claudecode@omc": true\n  }\n}\n' > "$_settings"
-    fi
+  local _plugins_json="$1"
+  [[ -z "$_plugins_json" ]] && _plugins_json='{}'
+  mkdir -p .claude
+  if [[ -f "$_settings" ]]; then
+    local _tmp=$(mktemp)
+    _SCAR_P="$_plugins_json" _SCAR_IN="$_settings" _SCAR_OUT="$_tmp" node -e '
+      const fs = require("fs");
+      const s = JSON.parse(fs.readFileSync(process.env._SCAR_IN, "utf8"));
+      s.enabledPlugins = JSON.parse(process.env._SCAR_P);
+      fs.writeFileSync(process.env._SCAR_OUT, JSON.stringify(s, null, 2) + "\n");
+    ' && mv "$_tmp" "$_settings"
+  else
+    _SCAR_P="$_plugins_json" _SCAR_OUT="$_settings" node -e '
+      const fs = require("fs");
+      fs.writeFileSync(process.env._SCAR_OUT, JSON.stringify({enabledPlugins: JSON.parse(process.env._SCAR_P)}, null, 2) + "\n");
+    '
   fi
+}
+
+# 플러그인 세트 상수
+_SCAR_P_OMC='{"oh-my-claudecode@omc":true}'
+_SCAR_P_PRD='{"show-me-the-prd@gptaku-plugins":true,"docs-guide@gptaku-plugins":true,"deep-research@gptaku-plugins":true}'
+_SCAR_P_PRD_OMC='{"oh-my-claudecode@omc":true,"show-me-the-prd@gptaku-plugins":true,"docs-guide@gptaku-plugins":true,"deep-research@gptaku-plugins":true}'
+
+# --- Base 프로파일 ---
+
+# oh-my-claudecode
+cc-omc() {
+  _scar_set_plugins "$_SCAR_P_OMC"
   command claude \
     --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/omc/system-prompt.md")" \
     "$@"
@@ -34,65 +48,13 @@ cc-omc() {
 
 # gptaku (show-me-the-prd + docs-guide + deep-research)
 cc-prd() {
-  local _settings=".claude/settings.json"
-  local _plugins=("show-me-the-prd@gptaku-plugins" "docs-guide@gptaku-plugins" "deep-research@gptaku-plugins")
-  local _need_update=false
-
-  for _p in "${_plugins[@]}"; do
-    if [[ ! -f "$_settings" ]] || ! grep -q "\"$_p\"" "$_settings" 2>/dev/null; then
-      _need_update=true
-      break
-    fi
-  done
-
-  if $_need_update; then
-    mkdir -p .claude
-    if [[ -f "$_settings" ]]; then
-      local _tmp=$(mktemp)
-      node -e "
-        const fs = require('fs');
-        const s = JSON.parse(fs.readFileSync('$_settings','utf8'));
-        s.enabledPlugins = s.enabledPlugins || {};
-        ['show-me-the-prd@gptaku-plugins','docs-guide@gptaku-plugins','deep-research@gptaku-plugins']
-          .forEach(p => s.enabledPlugins[p] = true);
-        fs.writeFileSync('$_tmp', JSON.stringify(s, null, 2) + '\n');
-      " && mv "$_tmp" "$_settings"
-    else
-      printf '{\n  "enabledPlugins": {\n    "show-me-the-prd@gptaku-plugins": true,\n    "docs-guide@gptaku-plugins": true,\n    "deep-research@gptaku-plugins": true\n  }\n}\n' > "$_settings"
-    fi
-  fi
+  _scar_set_plugins "$_SCAR_P_PRD"
   command claude "$@"
 }
 
 # PRD + OMC (기획 → 구현 파이프라인)
 cc-prd-omc() {
-  local _settings=".claude/settings.json"
-  local _plugins=("oh-my-claudecode@omc" "show-me-the-prd@gptaku-plugins" "docs-guide@gptaku-plugins" "deep-research@gptaku-plugins")
-  local _need_update=false
-
-  for _p in "${_plugins[@]}"; do
-    if [[ ! -f "$_settings" ]] || ! grep -q "\"$_p\"" "$_settings" 2>/dev/null; then
-      _need_update=true
-      break
-    fi
-  done
-
-  if $_need_update; then
-    mkdir -p .claude
-    if [[ -f "$_settings" ]]; then
-      local _tmp=$(mktemp)
-      node -e "
-        const fs = require('fs');
-        const s = JSON.parse(fs.readFileSync('$_settings','utf8'));
-        s.enabledPlugins = s.enabledPlugins || {};
-        ['oh-my-claudecode@omc','show-me-the-prd@gptaku-plugins','docs-guide@gptaku-plugins','deep-research@gptaku-plugins']
-          .forEach(p => s.enabledPlugins[p] = true);
-        fs.writeFileSync('$_tmp', JSON.stringify(s, null, 2) + '\n');
-      " && mv "$_tmp" "$_settings"
-    else
-      printf '{\n  "enabledPlugins": {\n    "oh-my-claudecode@omc": true,\n    "show-me-the-prd@gptaku-plugins": true,\n    "docs-guide@gptaku-plugins": true,\n    "deep-research@gptaku-plugins": true\n  }\n}\n' > "$_settings"
-    fi
-  fi
+  _scar_set_plugins "$_SCAR_P_PRD_OMC"
   command claude \
     --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/omc/system-prompt.md")" \
     "$@"
@@ -104,6 +66,7 @@ cc-moai() {
     echo "⚠ moai-adk 미초기화. 'cc-init-moai' 먼저 실행하세요."
     return 1
   fi
+  _scar_set_plugins '{}'
   command claude "$@"
 }
 
@@ -113,6 +76,7 @@ cc-spec() {
     echo "⚠ spec-kit 미초기화. 'cc-init-spec' 먼저 실행하세요."
     return 1
   fi
+  _scar_set_plugins '{}'
   if [[ $# -eq 0 ]]; then
     command claude \
       --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/spec/system-prompt.md")" \
@@ -151,6 +115,7 @@ cc-moai-spec() {
     echo "⚠ spec-kit 미초기화. 'cc-init-spec' 먼저 실행하세요."
     return 1
   fi
+  _scar_set_plugins '{}'
   if [[ $# -eq 0 ]]; then
     command claude \
       --append-system-prompt "$(cat "$SCAR_CC_DIR/profiles/spec/system-prompt.md")" \
@@ -168,10 +133,11 @@ cc-forge() {
     echo "⚠ claude-forge 미초기화. 'cc-init-forge' 먼저 실행하세요."
     return 1
   fi
+  _scar_set_plugins '{}'
   command claude "$@"
 }
 
-# OMC + forge
+# OMC + forge (cc-omc가 이미 _scar_set_plugins 호출)
 cc-omc-forge() {
   if [[ ! -f ".claude/.forge" ]]; then
     echo "⚠ claude-forge 미초기화. 'cc-init-forge' 먼저 실행하세요."
