@@ -345,4 +345,7 @@ cc-profile() {
 # === Port Management ===
 source "${SCAR_CC_DIR}/scar-ports.zsh"
 
+# === Dashboard ===
+source "${SCAR_CC_DIR}/scar-dashboard.zsh"
+
 # === End scar-cc ===
